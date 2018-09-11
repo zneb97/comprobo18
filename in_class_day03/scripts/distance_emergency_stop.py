@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Ben Ziemann
-Last updated: 9/7/18
+Last updated: 9/9/18
 
 Stops the Neato based on laser scan directly in front of it
 """
@@ -30,12 +30,12 @@ class EStop:
         self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=2)
         rospy.init_node('eStop')
 
-        rospy.Subscriber("/stable_scan", LaserScan, self.checkLaser)
+        rospy.Subscriber("/scan", LaserScan, self.checkLaser)
 
 
     def checkLaser(self, msg):
         """
-        Check if any bump sensor is pressed
+        Get the distance of the laser scan at 0deg (front of robot)
         """
         self.forwardDist = msg.ranges[0]
 
@@ -52,11 +52,13 @@ class EStop:
         """
         Move forward and slow as the Neato approaches a wall
         """
+
         self.publish(.5)
-        while self.forwardDist > self.slowingZone:
+        while self.forwardDist > self.slowingZone and not rospy.is_shutdown():
             continue
-        while (self.forwardDist < self.slowingZone) and (self.forwardDist > self.stoppingZone ):
-            self.publish(.33*self.forwardDist)
+        while (self.forwardDist < self.slowingZone) and (self.forwardDist > self.stoppingZone ) and not rospy.is_shutdown():
+            self.publish((self.forwardDist - self.stoppingZone)*.1)
+            #self.publish(.33*self.forwardDist)
         self.publish(0.0)
        
 

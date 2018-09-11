@@ -20,6 +20,7 @@ class FSC:
     def __init__(self):
 
         #States
+        self.debugOn = False
         self.bumped = 0
         self.forwardDist = 99999
         self.turnTime = 0
@@ -36,12 +37,12 @@ class FSC:
         self.pub = rospy.Publisher('/cmd_vel', Twist, queue_size=2)
         rospy.init_node('finite_state_control')
         rospy.Subscriber("/bump", Bump, self.checkBump)
-        rospy.Subscriber("/stable_scan", LaserScan, self.checkLaser)
+        rospy.Subscriber("/scan", LaserScan, self.checkLaser)
 
 
     def checkLaser(self, msg):
         """
-        Check if any bump sensor is pressed
+        Get the distance of the laser scan at 0deg (front of robot)
         """
         self.forwardDist = msg.ranges[0]
 
@@ -68,10 +69,10 @@ class FSC:
         if any bump sensor becomes activated, change state to moving backward.
         otherwise, stay in the moving forward state
         """
-        if debugOn: print("Forwarding")
+        if self.debugOn: print("Forwarding")
         self.publish(0.3, 0.0)
-        while not self.bumped:
-            continue
+        while not self.bumped and not rospy.is_shutdown():
+            print(self.forwardDist)
         self.publish(0.0, 0.0)
         self.state = "backward"
 
@@ -82,9 +83,9 @@ class FSC:
         if the obstacle detected in front of the robot exceeds a specified threshold, change state to rotating left.  Also, record the time at which the robot began rotating left.
         otherwise, stay in the moving backward state.
         """
-        if debugOn: print("Backing")
+        if self.debugOn: print("Backing")
         self.publish(-0.3, 0.0)
-        while self.forwardDist < self.distExceed:
+        while (self.forwardDist < self.distExceed) and not rospy.is_shutdown():
             continue
         self.publish(0.0, 0.0)
         self.bumped = 0
@@ -99,9 +100,9 @@ class FSC:
         if the current time is more than 1 second greater than when the robot started rotating left, change state to moving forward.
         otherwise, stay in the rotating left state.
         """
-        if debugOn: print("Turning")
+        if self.debugOn: print("Turning")
         self.publish(0.0, 1.0)
-        while rospy.get_time() - self.turnTime < 1:
+        while (rospy.get_time() - self.turnTime < 1) and not rospy.is_shutdown():
             continue
         self.publish(0.0, 0.0)
         self.state = "forward"
@@ -112,7 +113,7 @@ class FSC:
         """
         Have the robot navigate based on the example's rules for behavior
         """
-        while(True):
+        while(not rospy.is_shutdown()):
             self.states[self.state].__call__()
         
 

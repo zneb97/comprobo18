@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Ben Ziemann
-Last updated: 9/7/18
+Last updated: 9/9/18
 
 Stops the Neato based on the bump sensor
 """
@@ -52,7 +52,7 @@ class EStop:
         Move forward until the robot's bumped sensor is triggered
         """
         self.publish(1.0)
-        while not self.bumped:
+        while not self.bumped and not rospy.is_shutdown()::
             continue
         self.publish(0.0)
 
